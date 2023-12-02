@@ -11,6 +11,16 @@ function GetFileLines()
     return lines
 end
 
+function GetGameId(game)
+    local id = ''
+    local i = 6
+    while game:sub(i, i) ~= ':'  do
+        id = id..game:sub(i, i) 
+        i = i + 1
+    end
+    return id
+end
+
 function GetSubGames(game)
     local subGames = {}
     local subGame = ''
@@ -24,7 +34,6 @@ function GetSubGames(game)
             subGames[#subGames+1] = subGame
             subGame = ''
         end
-        -- print(subGame)
     end
     subGames[#subGames+1] = subGame
     return subGames
@@ -42,19 +51,13 @@ function GetCubes(subGame)
             cubes[#cubes+1] = cube:sub(2, #cube)
             cube = ''
         end
-        -- print(cube)
     end
     cubes[#cubes+1] = cube:sub(2, #cube)
     return cubes
 end
 
 function EvaluateGame(game)
-    local id = ''
-    local i = 6
-    while game:sub(i, i) ~= ':'  do
-        id = id..game:sub(i, i) 
-        i = i + 1
-    end  
+    local id = GetGameId(game) 
 
     local number = ''
     local color = ''
@@ -71,8 +74,6 @@ function EvaluateGame(game)
             for l = cube:find(' ') + 1, #cube do
                 color = color..cube:sub(l, l)
             end
-            -- print(number)
-            -- print(color)
             if tonumber(number) > LookupTable[color] then
                 return nil
             end
@@ -84,14 +85,42 @@ function EvaluateGame(game)
     return id
 end
 
+function BetterEvaluateGame(game)
+    local smallestNumber = {}
+
+    local number = ''
+    local color = ''
+    local subGames = GetSubGames(game)
+
+    for j, subGame in ipairs(subGames) do
+        local cubes = GetCubes(subGame)
+        for k, cube in ipairs(cubes) do
+            for l = 1, #cube do 
+                if tonumber(cube:sub(l, l)) ~= nil then
+                    number = number..cube:sub(l, l)
+                end
+            end
+            for l = cube:find(' ') + 1, #cube do
+                color = color..cube:sub(l, l)
+            end
+            if smallestNumber[color] == nil then
+                smallestNumber[color] = tonumber(number)
+            end
+            if smallestNumber[color] < tonumber(number) then
+                smallestNumber[color] = tonumber(number)
+            end
+            number = ''
+            color = ''
+        end
+    end
+    return (smallestNumber['red'] * smallestNumber['blue'] * smallestNumber['green'])
+end
+
 Lines = GetFileLines()
 
 Sum = 0
 for i = 1, #Lines do
-    local gameid = EvaluateGame(Lines[i])
-    if gameid ~= nil then
-        Sum = Sum + gameid
-    end
+    Sum = Sum + BetterEvaluateGame(Lines[i])
 end
 
 print(Sum)
